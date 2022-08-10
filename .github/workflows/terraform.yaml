@@ -33,9 +33,9 @@ jobs:
         if: "${{ github.event.inputs.terraform_operation == 'plan' }}"
 
       - name: Terraform apply
-        run: terraform apply
+        run: terraform apply --auto-approve
         if: "${{ github.event.inputs.terraform_operation == 'apply' }}"
 
       - name: Terraform destroy
-        run: terraform destroy
+        run: terraform destroy --auto-approve
         if: "${{ github.event.inputs.terraform_operation == 'destroy' }}"
