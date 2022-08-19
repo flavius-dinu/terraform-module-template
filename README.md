@@ -31,6 +31,5 @@ This will fix all the problems related to the hooks mentioned above.
 You will need to add the following in **README.md** in order to auto-populate the documentation with terraform-docs.
 ```
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
-
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ```
