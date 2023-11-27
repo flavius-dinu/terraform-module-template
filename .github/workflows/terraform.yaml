@@ -1,41 +1,63 @@
+name: Terraform Plan and Review
+
 on:
-  workflow_dispatch:
-    inputs:
-      terraform_operation:
-        description: "Terraform operation: plan, apply, destroy"
-        required: true
-        default: "plan"
-        type: choice
-        options:
-          - plan
-          - apply
-          - destroy
+  pull_request:
+    branches:
+      - main
 
 jobs:
-  terraform:
-    name: "terraform"
+  terraform-plan:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout Code
+      - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v1
+      - name: Install Digger
+        run: |
+          curl -sL https://run.digger.dev | bash
 
-      - name: Go to the example directory
-        run: cd example
+      - name: Run Terraform plan
+        id: terraform-plan
+        run: |
+          digger plan
 
-      - name: Terraform init
-        run: terraform init
+      - name: Store plan file
+        uses: actions/upload-artifact@v3
+        with:
+          name: terraform-plan
+          path: terraform.plan.json
 
-      - name: Terraform plan
-        run: terraform plan
-        if: "${{ github.event.inputs.terraform_operation == 'plan' }}"
+  terraform-review:
+    runs-on: ubuntu-latest
+    needs: terraform-plan
 
-      - name: Terraform apply
-        run: terraform apply --auto-approve
-        if: "${{ github.event.inputs.terraform_operation == 'apply' }}"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - name: Terraform destroy
-        run: terraform destroy --auto-approve
-        if: "${{ github.event.inputs.terraform_operation == 'destroy' }}"
+      - name: Download plan file
+        uses: actions/download-artifact@v3
+        with:
+          name: terraform-plan
+          path: terraform.plan.json
+
+      - name: Install Digger
+        run: |
+          curl -sL https://run.digger.dev | bash
+
+      - name: Generate review comment
+        id: generate-review-comment
+        run: |
+          digger diff --plan terraform.plan.json > diff.txt
+
+      - name: Create pull request review
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: fs.readFileSync('diff.txt', 'utf-8')
+            })
